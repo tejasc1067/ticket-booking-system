@@ -10,6 +10,8 @@ import com.ticketbooking.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,19 +27,22 @@ public class BookingController {
 
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody BookingRequest request) {
-        // TODO: Replace with authenticated user from JWT in Step 7
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Booking booking = bookingService.createBooking(user, request.getShowId(), request.getSeatIds());
         return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.toBookingResponse(booking));
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<BookingResponse>> getBookingsByUser(@PathVariable Long userId) {
-        List<BookingResponse> bookings = bookingService.getBookingsByUserId(userId).stream()
+    @GetMapping("/my")
+    public ResponseEntity<List<BookingResponse>> getMyBookings(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<BookingResponse> bookings = bookingService.getBookingsByUserId(user.getId()).stream()
                 .map(DtoMapper::toBookingResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(bookings);
@@ -51,10 +56,12 @@ public class BookingController {
 
     @PutMapping("/{bookingId}/cancel")
     public ResponseEntity<BookingResponse> cancelBooking(
-            @PathVariable Long bookingId,
-            @RequestParam Long userId) {
-        // TODO: Replace with authenticated user from JWT in Step 7
-        Booking cancelled = bookingService.cancelBooking(bookingId, userId);
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long bookingId) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Booking cancelled = bookingService.cancelBooking(bookingId, user.getId());
         return ResponseEntity.ok(DtoMapper.toBookingResponse(cancelled));
     }
 }
