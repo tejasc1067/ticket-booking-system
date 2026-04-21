@@ -43,7 +43,7 @@ public class BookingService {
     }
 
     public Booking getBookingById(Long id) {
-        return bookingRepository.findById(id)
+        return bookingRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
     }
 
@@ -127,7 +127,9 @@ public class BookingService {
         seatLockService.unlockSeats(seatIds, user.getId());
         log.info("Booking {} confirmed for user {}", savedBooking.getBookingReference(), user.getEmail());
 
-        return savedBooking;
+        // Re-fetch with all associations for response
+        return bookingRepository.findByIdWithDetails(savedBooking.getId())
+                .orElse(savedBooking);
     }
 
     @Transactional
