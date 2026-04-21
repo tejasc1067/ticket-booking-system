@@ -200,7 +200,7 @@ public class DataSeeder implements CommandLineRunner {
         all.add(new EventTemplate("Zakir Khan — Haq Se Single", "India's favourite comedian delivers laughs in his signature style.", "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800"));
         all.add(new EventTemplate("Vir Das World Tour", "Internationally acclaimed comedian Vir Das live on stage.", "https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=800"));
         all.add(new EventTemplate("Biswa Kalyan Rath StandUp", "Sharp observational humour from one of India's best.", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800"));
-        all.add(new EventTemplate("Abhishek Upmanyu — Thoda Aur", "Internet's favourite comedian performing new material.", "https://images.unsplash.com/photo-1484981138541-3d074aa97b07?w=800"));
+        all.add(new EventTemplate("Abhishek Upmanyu — Thoda Aur", "Internet's favourite comedian performing new material.", "https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=800&q=80"));
         all.add(new EventTemplate("Comicstaan Live", "The best comedians from Amazon's Comicstaan together on one stage.", "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800"));
         all.add(new EventTemplate("Kusha Kapila Comedy Night", "Social media sensation brings her brand of humour to stage.", "https://images.unsplash.com/photo-1496024840928-4c417adf211d?w=800"));
         all.add(new EventTemplate("Anubhav Singh Bassi Live", "The viral sensation performing his hilarious life stories.", "https://images.unsplash.com/photo-1485095329183-d0797cdc5676?w=800"));
@@ -209,7 +209,7 @@ public class DataSeeder implements CommandLineRunner {
         // Theatre & Drama (10)
         all.add(new EventTemplate("Mughal-E-Azam — The Musical", "The epic love story reimagined as a grand stage musical.", "https://images.unsplash.com/photo-1503095396549-807759245b35?w=800"));
         all.add(new EventTemplate("Natsamrat — Marathi Natak", "The legendary Marathi play performed by acclaimed artists.", "https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=800"));
-        all.add(new EventTemplate("Moruchi Mavshi — Comedy Natak", "Iconic Marathi comedy that has entertained generations.", "https://images.unsplash.com/photo-1547153760-18fc86c5dbdb?w=800"));
+        all.add(new EventTemplate("Moruchi Mavshi — Comedy Natak", "Iconic Marathi comedy that has entertained generations.", "https://images.unsplash.com/photo-1503095396549-807759245b35?w=800&q=80"));
         all.add(new EventTemplate("Vichitra Veer Abhimanyu", "A mythological drama with stunning visual effects.", "https://images.unsplash.com/photo-1460881680858-30d872d5b530?w=800"));
         all.add(new EventTemplate("Hamlet — English Theatre", "Shakespeare's masterpiece performed in contemporary style.", "https://images.unsplash.com/photo-1586899028174-e7098604235b?w=800"));
         all.add(new EventTemplate("Tee Phulrani — Musical Drama", "A beautiful Marathi musical about love and sacrifice.", "https://images.unsplash.com/photo-1565035010268-a3816f98589a?w=800"));
@@ -221,17 +221,17 @@ public class DataSeeder implements CommandLineRunner {
         all.add(new EventTemplate("Bharatanatyam Evening", "South Indian classical dance recital by renowned dancers.", "https://images.unsplash.com/photo-1518834107812-67b0b7c58434?w=800"));
         all.add(new EventTemplate("Bollywood Dance Night", "High-energy Bollywood dance show with celebrity choreographers.", "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=800"));
         all.add(new EventTemplate("Garba Raas Festival", "Multi-day Gujarati folk dance celebration.", "https://images.unsplash.com/photo-1528495612343-9ca9f4a4de28?w=800"));
-        all.add(new EventTemplate("Contemporary Dance Showcase", "Modern dance pieces exploring social themes.", "https://images.unsplash.com/photo-1547153760-18fc86c5dbdb?w=800"));
+        all.add(new EventTemplate("Contemporary Dance Showcase", "Modern dance pieces exploring social themes.", "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=800&q=80"));
 
         // Sports & Adventure (5)
-        all.add(new EventTemplate("Pro Kabaddi Live", "Watch India's top kabaddi teams battle it out live.", "https://images.unsplash.com/photo-1461896836934-bd45ba68fd94?w=800"));
+        all.add(new EventTemplate("Pro Kabaddi Live", "Watch India's top kabaddi teams battle it out live.", "https://images.unsplash.com/photo-1517164850305-99a3e65bb47e?w=800&q=80"));
         all.add(new EventTemplate("Marathon Championship", "Annual city marathon with professional runners.", "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?w=800"));
         all.add(new EventTemplate("Cricket Exhibition Match", "Celebrity cricket match featuring Bollywood and cricket stars.", "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800"));
         all.add(new EventTemplate("Kushti Wrestling Dangal", "Traditional Indian wrestling tournament.", "https://images.unsplash.com/photo-1517164850305-99a3e65bb47e?w=800"));
 
         // Festivals & Fairs (8)
-        all.add(new EventTemplate("Ganeshotsav Cultural Fest", "Week-long cultural celebration with music, dance and drama.", "https://images.unsplash.com/photo-1567591370504-80cfc5ced8dd?w=800"));
-        all.add(new EventTemplate("Diwali Mela — Light Festival", "Grand Diwali celebration with performances and fireworks.", "https://images.unsplash.com/photo-1575450070940-744e52381c89?w=800"));
+        all.add(new EventTemplate("Ganeshotsav Cultural Fest", "Week-long cultural celebration with music, dance and drama.", "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&q=80"));
+        all.add(new EventTemplate("Diwali Mela — Light Festival", "Grand Diwali celebration with performances and fireworks.", "https://images.unsplash.com/photo-1576089172869-4f5f6f315620?w=800&q=80"));
         all.add(new EventTemplate("Food & Music Festival", "A fusion of live music and Maharashtra's best cuisine.", "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800"));
         all.add(new EventTemplate("Holi Rang Utsav", "Colours, music and dance in a grand Holi celebration.", "https://images.unsplash.com/photo-1576089172869-4f5f6f315620?w=800"));
         all.add(new EventTemplate("Navratri Garba Night", "Nine nights of devotion, music and Garba dancing.", "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800"));
