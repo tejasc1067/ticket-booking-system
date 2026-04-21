@@ -45,4 +45,7 @@ public class Show {
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @Version
+    private Long version;
 }

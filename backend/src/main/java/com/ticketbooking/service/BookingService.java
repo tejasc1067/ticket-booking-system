@@ -4,8 +4,10 @@ import com.ticketbooking.entity.*;
 import com.ticketbooking.enums.BookingStatus;
 import com.ticketbooking.enums.SeatStatus;
 import com.ticketbooking.repository.BookingRepository;
+import com.ticketbooking.repository.SeatRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,9 @@ public class BookingService {
     private final ShowService showService;
     private final SeatService seatService;
     private final SeatLockService seatLockService;
+    private final SeatRepository seatRepository;
+
+    private static final int MAX_RETRIES = 3;
 
     public List<Booking> getBookingsByUserId(Long userId) {
         return bookingRepository.findByUserId(userId);
@@ -38,19 +43,35 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
     }
 
+    /**
+     * Creates a booking with concurrency protection:
+     * 1. Redis lock verification (application-level)
+     * 2. Pessimistic DB lock on seats (database-level)
+     * 3. Optimistic locking via @Version (entity-level)
+     * 4. Retry mechanism for optimistic lock failures
+     */
     @Transactional
     public Booking createBooking(User user, Long showId, List<Long> seatIds) {
-        Show show = showService.getShowById(showId);
-        List<Seat> seats = seatService.getSeatsByIdsAndShowId(seatIds, showId);
+        int attempt = 0;
 
-        // Validate all seats are available
-        for (Seat seat : seats) {
-            if (seat.getStatus() != SeatStatus.AVAILABLE) {
-                throw new RuntimeException("Seat " + seat.getSeatNumber() + " is not available");
+        while (attempt < MAX_RETRIES) {
+            try {
+                attempt++;
+                log.info("Booking attempt {} for user {} on show {}", attempt, user.getEmail(), showId);
+                return executeBooking(user, showId, seatIds);
+            } catch (ObjectOptimisticLockingFailureException e) {
+                log.warn("Optimistic lock conflict on attempt {}. Retrying...", attempt);
+                if (attempt >= MAX_RETRIES) {
+                    throw new RuntimeException("Booking failed due to high demand. Please try again.");
+                }
             }
         }
 
-        // Verify seats are locked by this user (Redis lock must exist)
+        throw new RuntimeException("Booking failed after maximum retries");
+    }
+
+    private Booking executeBooking(User user, Long showId, List<Long> seatIds) {
+        // 1. Verify Redis locks belong to this user
         for (Long seatId : seatIds) {
             String lockHolder = seatLockService.getLockHolder(seatId);
             if (lockHolder == null) {
@@ -61,18 +82,38 @@ public class BookingService {
             }
         }
 
-        // Calculate total amount
+        // 2. Acquire pessimistic lock on seats (database row-level lock)
+        List<Seat> seats = seatRepository.findByIdInAndShowIdWithLock(seatIds, showId);
+
+        if (seats.size() != seatIds.size()) {
+            throw new RuntimeException("One or more seats not found for the given show");
+        }
+
+        // 3. Validate seats are still AVAILABLE (double-check after acquiring lock)
+        for (Seat seat : seats) {
+            if (seat.getStatus() != SeatStatus.AVAILABLE) {
+                throw new RuntimeException("Seat " + seat.getSeatNumber() + " is no longer available");
+            }
+        }
+
+        // 4. Get show and validate availability
+        Show show = showService.getShowById(showId);
+        if (show.getAvailableSeats() < seats.size()) {
+            throw new RuntimeException("Not enough available seats for this show");
+        }
+
+        // 5. Calculate total amount
         BigDecimal totalAmount = seats.stream()
                 .map(Seat::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Update seat status to BOOKED
+        // 6. Update seat status to BOOKED
         seatService.updateSeatStatus(seats, SeatStatus.BOOKED);
 
-        // Update available seats count
+        // 7. Update available seats count
         show.setAvailableSeats(show.getAvailableSeats() - seats.size());
 
-        // Create booking
+        // 8. Create and save booking
         Booking booking = Booking.builder()
                 .bookingReference(generateBookingReference())
                 .user(user)
@@ -85,9 +126,9 @@ public class BookingService {
 
         Booking savedBooking = bookingRepository.save(booking);
 
-        // Release Redis locks after successful booking
+        // 9. Release Redis locks after successful booking
         seatLockService.unlockSeats(seatIds, user.getId());
-        log.info("Booking {} created successfully for user {}", savedBooking.getBookingReference(), user.getEmail());
+        log.info("Booking {} confirmed for user {}", savedBooking.getBookingReference(), user.getEmail());
 
         return savedBooking;
     }
