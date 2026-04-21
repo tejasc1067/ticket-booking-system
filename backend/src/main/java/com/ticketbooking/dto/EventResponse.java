@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
@@ -20,6 +19,5 @@ public class EventResponse {
     private String venue;
     private String city;
     private String imageUrl;
-    private List<ShowResponse> shows;
     private LocalDateTime createdAt;
 }

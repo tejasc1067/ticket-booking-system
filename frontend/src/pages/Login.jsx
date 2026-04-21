@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,6 +9,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,7 +19,10 @@ export default function Login() {
     try {
       const res = await authAPI.login(form);
       login(res.data);
-      navigate('/');
+
+      // Redirect back to where the user came from
+      const redirect = searchParams.get('redirect');
+      navigate(redirect || '/');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password');
     } finally {

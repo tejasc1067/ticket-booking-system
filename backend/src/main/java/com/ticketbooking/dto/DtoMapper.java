@@ -2,7 +2,6 @@ package com.ticketbooking.dto;
 
 import com.ticketbooking.entity.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,9 +32,6 @@ public final class DtoMapper {
                 .venue(event.getVenue())
                 .city(event.getCity())
                 .imageUrl(event.getImageUrl())
-                .shows(event.getShows() != null
-                        ? event.getShows().stream().map(DtoMapper::toShowResponse).collect(Collectors.toList())
-                        : Collections.emptyList())
                 .createdAt(event.getCreatedAt())
                 .build();
     }

@@ -2,21 +2,29 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { eventAPI } from '../services/api';
 
+const CITIES = [
+  'Pandharpur', 'Mumbai', 'Pune', 'Satara', 'Sangli',
+  'Kolhapur', 'Nagpur', 'Latur', 'Nanded', 'Nashik'
+];
+
 export default function Home() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCity, setSelectedCity] = useState('Pandharpur');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    fetchEventsByCity(selectedCity);
+  }, [selectedCity]);
 
-  const fetchEvents = async () => {
+  const fetchEventsByCity = async (city) => {
+    setLoading(true);
     try {
-      const res = await eventAPI.getAll();
+      const res = await eventAPI.getByCity(city);
       setEvents(res.data);
     } catch (err) {
       console.error('Failed to fetch events:', err);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -28,18 +36,20 @@ export default function Home() {
     if (keyword.trim().length > 1) {
       try {
         const res = await eventAPI.search(keyword);
-        setEvents(res.data);
+        // Filter by selected city
+        setEvents(res.data.filter((ev) => ev.city === selectedCity));
       } catch (err) {
         console.error('Search failed:', err);
       }
     } else if (keyword.trim().length === 0) {
-      fetchEvents();
+      fetchEventsByCity(selectedCity);
     }
   };
 
-  if (loading) {
-    return <div className="loading"><div className="spinner"></div></div>;
-  }
+  const handleCityChange = (city) => {
+    setSelectedCity(city);
+    setSearch('');
+  };
 
   return (
     <>
@@ -63,46 +73,61 @@ export default function Home() {
       </div>
 
       <div className="container">
-        {events.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🎭</div>
-            <div className="empty-state-title">No events found</div>
-            <p>Check back later for upcoming events</p>
-          </div>
-        ) : (
-          <div className="grid grid-3">
-            {events.map((event) => (
-              <Link to={`/events/${event.id}`} key={event.id}>
-                <div className="card">
-                  {event.imageUrl ? (
-                    <img src={event.imageUrl} alt={event.name} className="card-image" />
-                  ) : (
-                    <div className="card-image" style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '3rem', background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-card))'
-                    }}>🎪</div>
-                  )}
-                  <h3 className="card-title">{event.name}</h3>
-                  <p className="card-subtitle">📍 {event.venue}, {event.city}</p>
-                  {event.description && (
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                      {event.description.length > 100
-                        ? event.description.substring(0, 100) + '...'
-                        : event.description}
-                    </p>
-                  )}
-                  {event.shows && event.shows.length > 0 && (
-                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <span className="badge badge-success">{event.shows.length} show{event.shows.length > 1 ? 's' : ''}</span>
-                      <span className="price">
-                        From ₹{Math.min(...event.shows.map(s => s.basePrice)).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </Link>
+        {/* City Selector */}
+        <div className="city-selector">
+          <div className="city-selector-label">📍 Events near</div>
+          <div className="city-pills">
+            {CITIES.map((city) => (
+              <button
+                key={city}
+                className={`city-pill ${selectedCity === city ? 'city-pill-active' : ''}`}
+                onClick={() => handleCityChange(city)}
+              >
+                {city}
+              </button>
             ))}
           </div>
+        </div>
+
+        {loading ? (
+          <div className="loading"><div className="spinner"></div></div>
+        ) : events.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">🎭</div>
+            <div className="empty-state-title">No events in {selectedCity}</div>
+            <p>Check back later or try another city</p>
+          </div>
+        ) : (
+          <>
+            <div className="page-header" style={{ marginTop: '0.5rem' }}>
+              <p className="page-subtitle">{events.length} events in {selectedCity}</p>
+            </div>
+            <div className="grid grid-3">
+              {events.map((event) => (
+                <Link to={`/events/${event.id}`} key={event.id}>
+                  <div className="card">
+                    {event.imageUrl ? (
+                      <img src={event.imageUrl} alt={event.name} className="card-image" />
+                    ) : (
+                      <div className="card-image" style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '3rem', background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-card))'
+                      }}>🎪</div>
+                    )}
+                    <h3 className="card-title">{event.name.replace(` — ${event.city}`, '')}</h3>
+                    <p className="card-subtitle">📍 {event.venue}</p>
+                    {event.description && (
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                        {event.description.length > 100
+                          ? event.description.substring(0, 100) + '...'
+                          : event.description}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </>

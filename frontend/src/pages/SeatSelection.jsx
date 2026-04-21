@@ -49,34 +49,40 @@ export default function SeatSelection() {
 
   const totalAmount = selectedSeats.reduce((sum, s) => sum + s.price, 0);
 
-  const handleLockSeats = async () => {
+  const handleBookNow = async () => {
+    // Redirect to login if not authenticated
     if (!isAuthenticated) {
-      navigate('/login');
+      // Save intent so we can redirect back after login
+      localStorage.setItem('bookingIntent', JSON.stringify({
+        showId,
+        seatIds: selectedSeats.map((s) => s.id),
+      }));
+      navigate('/login?redirect=' + encodeURIComponent(`/shows/${showId}/seats`));
       return;
     }
+
+    // Step 1: Lock seats
     setError('');
     setLocking(true);
-
     try {
       await seatAPI.lock({ showId: parseInt(showId), seatIds: selectedSeats.map((s) => s.id) });
       setLocked(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to lock seats. Try different seats.');
-    } finally {
       setLocking(false);
+      return;
     }
-  };
+    setLocking(false);
 
-  const handleBooking = async () => {
-    setError('');
+    // Step 2: Confirm booking
     setBooking(true);
-
     try {
       const res = await bookingAPI.create({
         showId: parseInt(showId),
         seatIds: selectedSeats.map((s) => s.id),
       });
       setSuccess(`Booking confirmed! Reference: ${res.data.bookingReference}`);
+      localStorage.removeItem('bookingIntent');
       setTimeout(() => navigate('/bookings'), 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Booking failed. Please try again.');
@@ -213,24 +219,18 @@ export default function SeatSelection() {
                 </div>
 
                 <div style={{ marginTop: '1.5rem' }}>
-                  {!locked ? (
-                    <button
-                      className="btn btn-secondary btn-lg"
-                      style={{ width: '100%', marginBottom: '0.75rem' }}
-                      onClick={handleLockSeats}
-                      disabled={locking}
-                    >
-                      {locking ? 'Locking seats...' : '🔒 Lock Seats (5 min)'}
-                    </button>
-                  ) : (
-                    <button
-                      className="btn btn-primary btn-lg"
-                      style={{ width: '100%' }}
-                      onClick={handleBooking}
-                      disabled={booking}
-                    >
-                      {booking ? 'Confirming...' : '✅ Confirm Booking'}
-                    </button>
+                  <button
+                    className="btn btn-primary btn-lg"
+                    style={{ width: '100%' }}
+                    onClick={handleBookNow}
+                    disabled={locking || booking}
+                  >
+                    {locking ? '🔒 Locking seats...' : booking ? 'Confirming...' : isAuthenticated ? '✅ Book Now' : '🔐 Login & Book'}
+                  </button>
+                  {!isAuthenticated && (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+                      You'll be redirected to login
+                    </p>
                   )}
                 </div>
               </>

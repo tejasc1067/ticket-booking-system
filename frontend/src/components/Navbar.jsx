@@ -12,6 +12,7 @@ export default function Navbar() {
   };
 
   const isActive = (path) => location.pathname === path ? 'nav-link active' : 'nav-link';
+  const firstName = user?.fullName?.split(' ')[0] || '';
 
   return (
     <nav className="navbar">
@@ -29,10 +30,7 @@ export default function Navbar() {
         {isAuthenticated ? (
           <>
             <div className="nav-user">
-              <div>
-                <div className="nav-user-name">{user.fullName}</div>
-                <div className="nav-user-role">{user.role}</div>
-              </div>
+              <div className="nav-user-name">{firstName}</div>
             </div>
             <button className="nav-link" onClick={handleLogout}>Logout</button>
           </>
