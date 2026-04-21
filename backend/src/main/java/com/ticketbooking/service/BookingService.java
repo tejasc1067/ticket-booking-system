@@ -5,6 +5,7 @@ import com.ticketbooking.enums.BookingStatus;
 import com.ticketbooking.enums.SeatStatus;
 import com.ticketbooking.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,11 +16,13 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final ShowService showService;
     private final SeatService seatService;
+    private final SeatLockService seatLockService;
 
     public List<Booking> getBookingsByUserId(Long userId) {
         return bookingRepository.findByUserId(userId);
@@ -47,6 +50,17 @@ public class BookingService {
             }
         }
 
+        // Verify seats are locked by this user (Redis lock must exist)
+        for (Long seatId : seatIds) {
+            String lockHolder = seatLockService.getLockHolder(seatId);
+            if (lockHolder == null) {
+                throw new RuntimeException("Seat must be locked before booking. Please lock seats first.");
+            }
+            if (!lockHolder.equals(user.getId().toString())) {
+                throw new RuntimeException("Seat is locked by another user");
+            }
+        }
+
         // Calculate total amount
         BigDecimal totalAmount = seats.stream()
                 .map(Seat::getPrice)
@@ -69,7 +83,13 @@ public class BookingService {
                 .status(BookingStatus.CONFIRMED)
                 .build();
 
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // Release Redis locks after successful booking
+        seatLockService.unlockSeats(seatIds, user.getId());
+        log.info("Booking {} created successfully for user {}", savedBooking.getBookingReference(), user.getEmail());
+
+        return savedBooking;
     }
 
     @Transactional
@@ -92,6 +112,7 @@ public class BookingService {
         show.setAvailableSeats(show.getAvailableSeats() + booking.getNumberOfSeats());
 
         booking.setStatus(BookingStatus.CANCELLED);
+        log.info("Booking {} cancelled by user {}", booking.getBookingReference(), userId);
         return bookingRepository.save(booking);
     }
 
