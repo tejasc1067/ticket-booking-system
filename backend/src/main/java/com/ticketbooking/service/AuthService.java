@@ -5,6 +5,8 @@ import com.ticketbooking.dto.LoginRequest;
 import com.ticketbooking.dto.RegisterRequest;
 import com.ticketbooking.entity.User;
 import com.ticketbooking.enums.UserRole;
+import com.ticketbooking.exception.DuplicateResourceException;
+import com.ticketbooking.exception.ResourceNotFoundException;
 import com.ticketbooking.repository.UserRepository;
 import com.ticketbooking.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +29,7 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new DuplicateResourceException("Email already registered");
         }
 
         User user = User.builder()
@@ -62,7 +64,7 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())

@@ -3,6 +3,10 @@ package com.ticketbooking.service;
 import com.ticketbooking.entity.*;
 import com.ticketbooking.enums.BookingStatus;
 import com.ticketbooking.enums.SeatStatus;
+import com.ticketbooking.exception.BookingException;
+import com.ticketbooking.exception.ResourceNotFoundException;
+import com.ticketbooking.exception.SeatLockException;
+import com.ticketbooking.exception.UnauthorizedException;
 import com.ticketbooking.repository.BookingRepository;
 import com.ticketbooking.repository.SeatRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,21 +39,14 @@ public class BookingService {
 
     public Booking getBookingByReference(String bookingReference) {
         return bookingRepository.findByBookingReference(bookingReference)
-                .orElseThrow(() -> new RuntimeException("Booking not found with reference: " + bookingReference));
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with reference: " + bookingReference));
     }
 
     public Booking getBookingById(Long id) {
         return bookingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
     }
 
-    /**
-     * Creates a booking with concurrency protection:
-     * 1. Redis lock verification (application-level)
-     * 2. Pessimistic DB lock on seats (database-level)
-     * 3. Optimistic locking via @Version (entity-level)
-     * 4. Retry mechanism for optimistic lock failures
-     */
     @Transactional
     public Booking createBooking(User user, Long showId, List<Long> seatIds) {
         int attempt = 0;
@@ -62,12 +59,12 @@ public class BookingService {
             } catch (ObjectOptimisticLockingFailureException e) {
                 log.warn("Optimistic lock conflict on attempt {}. Retrying...", attempt);
                 if (attempt >= MAX_RETRIES) {
-                    throw new RuntimeException("Booking failed due to high demand. Please try again.");
+                    throw new BookingException("Booking failed due to high demand. Please try again.");
                 }
             }
         }
 
-        throw new RuntimeException("Booking failed after maximum retries");
+        throw new BookingException("Booking failed after maximum retries");
     }
 
     private Booking executeBooking(User user, Long showId, List<Long> seatIds) {
@@ -75,45 +72,45 @@ public class BookingService {
         for (Long seatId : seatIds) {
             String lockHolder = seatLockService.getLockHolder(seatId);
             if (lockHolder == null) {
-                throw new RuntimeException("Seat must be locked before booking. Please lock seats first.");
+                throw new SeatLockException("Seat must be locked before booking. Please lock seats first.");
             }
             if (!lockHolder.equals(user.getId().toString())) {
-                throw new RuntimeException("Seat is locked by another user");
+                throw new SeatLockException("Seat is locked by another user");
             }
         }
 
-        // 2. Acquire pessimistic lock on seats (database row-level lock)
+        // 2. Acquire pessimistic lock on seats
         List<Seat> seats = seatRepository.findByIdInAndShowIdWithLock(seatIds, showId);
 
         if (seats.size() != seatIds.size()) {
-            throw new RuntimeException("One or more seats not found for the given show");
+            throw new ResourceNotFoundException("One or more seats not found for the given show");
         }
 
-        // 3. Validate seats are still AVAILABLE (double-check after acquiring lock)
+        // 3. Double-check seats are AVAILABLE
         for (Seat seat : seats) {
             if (seat.getStatus() != SeatStatus.AVAILABLE) {
-                throw new RuntimeException("Seat " + seat.getSeatNumber() + " is no longer available");
+                throw new BookingException("Seat " + seat.getSeatNumber() + " is no longer available");
             }
         }
 
-        // 4. Get show and validate availability
+        // 4. Validate show availability
         Show show = showService.getShowById(showId);
         if (show.getAvailableSeats() < seats.size()) {
-            throw new RuntimeException("Not enough available seats for this show");
+            throw new BookingException("Not enough available seats for this show");
         }
 
-        // 5. Calculate total amount
+        // 5. Calculate total
         BigDecimal totalAmount = seats.stream()
                 .map(Seat::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 6. Update seat status to BOOKED
+        // 6. Update seat status
         seatService.updateSeatStatus(seats, SeatStatus.BOOKED);
 
-        // 7. Update available seats count
+        // 7. Decrement available seats
         show.setAvailableSeats(show.getAvailableSeats() - seats.size());
 
-        // 8. Create and save booking
+        // 8. Save booking
         Booking booking = Booking.builder()
                 .bookingReference(generateBookingReference())
                 .user(user)
@@ -126,7 +123,7 @@ public class BookingService {
 
         Booking savedBooking = bookingRepository.save(booking);
 
-        // 9. Release Redis locks after successful booking
+        // 9. Release Redis locks
         seatLockService.unlockSeats(seatIds, user.getId());
         log.info("Booking {} confirmed for user {}", savedBooking.getBookingReference(), user.getEmail());
 
@@ -138,17 +135,15 @@ public class BookingService {
         Booking booking = getBookingById(bookingId);
 
         if (!booking.getUser().getId().equals(userId)) {
-            throw new RuntimeException("You are not authorized to cancel this booking");
+            throw new UnauthorizedException("You are not authorized to cancel this booking");
         }
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new RuntimeException("Booking is already cancelled");
+            throw new BookingException("Booking is already cancelled");
         }
 
-        // Release seats
         seatService.updateSeatStatus(booking.getSeats(), SeatStatus.AVAILABLE);
 
-        // Update available seats count
         Show show = booking.getShow();
         show.setAvailableSeats(show.getAvailableSeats() + booking.getNumberOfSeats());
 

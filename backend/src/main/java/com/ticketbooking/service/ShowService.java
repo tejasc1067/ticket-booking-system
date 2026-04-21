@@ -5,6 +5,7 @@ import com.ticketbooking.entity.Seat;
 import com.ticketbooking.entity.Show;
 import com.ticketbooking.enums.SeatStatus;
 import com.ticketbooking.enums.SeatType;
+import com.ticketbooking.exception.ResourceNotFoundException;
 import com.ticketbooking.repository.ShowRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,7 @@ public class ShowService {
 
     public Show getShowById(Long id) {
         return showRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Show not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Show not found with id: " + id));
     }
 
     @Transactional

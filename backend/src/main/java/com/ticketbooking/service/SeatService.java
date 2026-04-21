@@ -2,6 +2,7 @@ package com.ticketbooking.service;
 
 import com.ticketbooking.entity.Seat;
 import com.ticketbooking.enums.SeatStatus;
+import com.ticketbooking.exception.ResourceNotFoundException;
 import com.ticketbooking.repository.SeatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,13 +27,13 @@ public class SeatService {
 
     public Seat getSeatById(Long id) {
         return seatRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Seat not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Seat not found with id: " + id));
     }
 
     public List<Seat> getSeatsByIdsAndShowId(List<Long> seatIds, Long showId) {
         List<Seat> seats = seatRepository.findByIdInAndShowId(seatIds, showId);
         if (seats.size() != seatIds.size()) {
-            throw new RuntimeException("One or more seats not found for the given show");
+            throw new ResourceNotFoundException("One or more seats not found for the given show");
         }
         return seats;
     }

@@ -1,6 +1,7 @@
 package com.ticketbooking.service;
 
 import com.ticketbooking.entity.Event;
+import com.ticketbooking.exception.ResourceNotFoundException;
 import com.ticketbooking.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,7 @@ public class EventService {
 
     public Event getEventById(Long id) {
         return eventRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
     }
 
     public List<Event> getEventsByCity(String city) {
