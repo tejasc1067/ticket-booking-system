@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+// In dev: Vite proxy or direct backend URL
+// In production (Docker): nginx proxies /api to backend
+const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:8080/api' : '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
