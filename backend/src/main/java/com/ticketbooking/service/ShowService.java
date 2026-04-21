@@ -33,7 +33,7 @@ public class ShowService {
     }
 
     public Show getShowById(Long id) {
-        return showRepository.findById(id)
+        return showRepository.findByIdWithEvent(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Show not found with id: " + id));
     }
 
